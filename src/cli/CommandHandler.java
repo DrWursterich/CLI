@@ -3,6 +3,7 @@ package cli;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 public final class CommandHandler {
 	private static List<Command> commands = new ArrayList<>();
@@ -55,12 +56,14 @@ public final class CommandHandler {
 
 	public static String[] handleArguments(String...args) {
 		final ArrayList<String> ignoredArgs = new ArrayList<>();
+		final ArrayList<Command> commands = new ArrayList<>();
+		commands.addAll(CommandHandler.commands);
 		for (int i = 0;i < args.length; i++) {
 			String arg = args[i];
 			if (arg.startsWith(CommandHandler.flagIndicator)) {
-				arg = arg.substring(1);
+				arg = arg.substring(CommandHandler.flagIndicator.length());
 				boolean exists = false;
-				for (final Command command : CommandHandler.commands) {
+				for (final Command command : commands) {
 					if (command.getName().equals(
 							CommandHandler.keyValueSeparator.equals(" ")
 								? arg
@@ -68,19 +71,26 @@ public final class CommandHandler {
 									0, arg.indexOf(
 										CommandHandler.keyValueSeparator)))) {
 						exists = true;
-						if (CommandHandler.keyValueSeparator.equals(" ")) {
-							if (args.length > ++i) {
-								command.getAction().accept(args[i]);
-								break;
+						String value = "";
+						if (command.hasValue()) {
+							if (CommandHandler.keyValueSeparator.equals(" ")) {
+								if (args.length > ++i) {
+									value = args[i];
+									break;
+								} else {
+									throw new IllegalArgumentException(
+											"Missing parameter for " + arg);
+								}
 							} else {
-								throw new IllegalArgumentException(
-										"Missing parameter for " + arg);
+								value = arg.substring(arg.indexOf(
+											CommandHandler.keyValueSeparator) + 1);
 							}
-						} else {
-							command.getAction().accept(
-									arg.substring(arg.indexOf(
-										CommandHandler.keyValueSeparator) + 1));
 						}
+						if (!command.allowMultiple()) {
+							commands.remove(command);
+						}
+						command.getAction().accept(value);
+						break;
 					}
 				}
 				if (!exists) {
@@ -91,17 +101,19 @@ public final class CommandHandler {
 				ignoredArgs.add(arg);
 			}
 		}
-		return args;
+		return ignoredArgs.toArray(new String[ignoredArgs.size()]);
 	}
 
 	public static List<String> handleArguments(List<String> args) {
 		final ArrayList<String> ignoredArgs = new ArrayList<>();
+		final ArrayList<Command> commands = new ArrayList<>();
+		commands.addAll(CommandHandler.commands);
 		for (int i = 0;i < args.size(); i++) {
 			String arg = args.get(i);
 			if (arg.startsWith(CommandHandler.flagIndicator)) {
-				arg = arg.substring(1);
+				arg = arg.substring(CommandHandler.flagIndicator.length());
 				boolean exists = false;
-				for (final Command command : CommandHandler.commands) {
+				for (final Command command : commands) {
 					if (command.getName().equals(
 							CommandHandler.keyValueSeparator.equals(" ")
 								? arg
@@ -109,19 +121,26 @@ public final class CommandHandler {
 									0, arg.indexOf(
 										CommandHandler.keyValueSeparator)))) {
 						exists = true;
-						if (CommandHandler.keyValueSeparator.equals(" ")) {
-							if (args.size() > ++i) {
-								command.getAction().accept(args.get(i));
-								break;
+						String value = "";
+						if (command.hasValue()) {
+							if (CommandHandler.keyValueSeparator.equals(" ")) {
+								if (args.size() > ++i) {
+									value = args.get(i);
+									break;
+								} else {
+									throw new IllegalArgumentException(
+											"Missing parameter for " + arg);
+								}
 							} else {
-								throw new IllegalArgumentException(
-										"Missing parameter for " + arg);
+								value = arg.substring(arg.indexOf(
+											CommandHandler.keyValueSeparator) + 1);
 							}
-						} else {
-							command.getAction().accept(
-									arg.substring(arg.indexOf(
-										CommandHandler.keyValueSeparator) + 1));
 						}
+						if (!command.allowMultiple()) {
+							commands.remove(command);
+						}
+						command.getAction().accept(value);
+						break;
 					}
 				}
 				if (!exists) {
@@ -132,6 +151,69 @@ public final class CommandHandler {
 				ignoredArgs.add(arg);
 			}
 		}
-		return args;
+		return ignoredArgs;
+	}
+
+	public static String[] handleArguments(
+			final String flagIndicator,
+			final String keyValueSeparator,
+			final Command[] commands,
+			final String...args) {
+		return CommandHandler.cacheValues(() -> {
+			CommandHandler.setFlagIndicator(flagIndicator);
+			CommandHandler.setKeyValueSeparator(keyValueSeparator);
+			CommandHandler.setCommands(commands);
+			return CommandHandler.handleArguments(args);
+		});
+	}
+
+	public static String[] handleArguments(
+			final String flagIndicator,
+			final String keyValueSeparator,
+			final List<Command> commands,
+			final String...args) {
+		return CommandHandler.cacheValues(() -> {
+			CommandHandler.setFlagIndicator(flagIndicator);
+			CommandHandler.setKeyValueSeparator(keyValueSeparator);
+			CommandHandler.setCommands(commands);
+			return CommandHandler.handleArguments(args);
+		});
+	}
+
+	public static List<String> handleArguments(
+			final String flagIndicator,
+			final String keyValueSeparator,
+			final List<Command> commands,
+			final List<String> args) {
+		return CommandHandler.cacheValues(() -> {
+			CommandHandler.setFlagIndicator(flagIndicator);
+			CommandHandler.setKeyValueSeparator(keyValueSeparator);
+			CommandHandler.setCommands(commands);
+			return CommandHandler.handleArguments(args);
+		});
+	}
+
+	public static List<String> handleArguments(
+			final String flagIndicator,
+			final String keyValueSeparator,
+			final Command[] commands,
+			final List<String> args) {
+		return CommandHandler.cacheValues(() -> {
+			CommandHandler.setFlagIndicator(flagIndicator);
+			CommandHandler.setKeyValueSeparator(keyValueSeparator);
+			CommandHandler.setCommands(commands);
+			return CommandHandler.handleArguments(args);
+		});
+	}
+
+	private static <T> T cacheValues(Supplier<T> action) {
+		final String prevFlagIndicator = CommandHandler.flagIndicator;
+		final String prevKeyValueSeparator = CommandHandler.keyValueSeparator;
+		final List<Command> prevCommands = CommandHandler.commands;
+		final T returnObject = action.get();
+		CommandHandler.setFlagIndicator(prevFlagIndicator);
+		CommandHandler.setKeyValueSeparator(prevKeyValueSeparator);
+		CommandHandler.setCommands(prevCommands);
+		return returnObject;
 	}
 }
