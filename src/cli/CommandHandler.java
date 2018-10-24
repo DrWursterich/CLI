@@ -6,26 +6,24 @@ import java.util.List;
 import java.util.function.Supplier;
 
 public final class CommandHandler {
-	private static final int NO_PREV_VALUE = -1;
-	private static List<Command> commands = new ArrayList<>();
+	private static List<Flag> flags = new ArrayList<>();
 	private static List<Parser> parser = new ArrayList<>();
 	private static String flagIndicator = "--";
-	private static String parsIndicator = "-";
 	private static String keyValueSeparator = "-";
 
-	public static void setCommands(List<Command> commands) {
-		if (commands == null) {
-			throw new IllegalArgumentException("Invalid commands");
+	public static void setFlags(List<Flag> flags) {
+		if (flags == null) {
+			throw new IllegalArgumentException("Invalid flags");
 		}
-		CommandHandler.commands = commands;
+		CommandHandler.flags = flags;
 	}
 
-	public static void setCommands(Command...commands) {
-		CommandHandler.commands = Arrays.asList(commands);
+	public static void setFlags(Flag...flags) {
+		CommandHandler.flags = Arrays.asList(flags);
 	}
 
-	public static List<Command> getCommands() {
-		return CommandHandler.commands;
+	public static List<Flag> getFlags() {
+		return CommandHandler.flags;
 	}
 
 	public static void setParser(List<Parser> parser) {
@@ -57,20 +55,6 @@ public final class CommandHandler {
 		return CommandHandler.flagIndicator;
 	}
 
-	public static void setParseIndicator(String parsIndicator) {
-		if (parsIndicator == null
-				|| parsIndicator.contains(" ")
-				|| parsIndicator.equals("")) {
-			throw new IllegalArgumentException(
-					"Invalid parsIndicator\"" + parsIndicator + "\"");
-		}
-		CommandHandler.parsIndicator = parsIndicator;
-	}
-
-	public static String getParsIndicator() {
-		return CommandHandler.parsIndicator;
-	}
-
 	public static void setKeyValueSeparator(String keyValueSeparator) {
 		if (keyValueSeparator == null
 				|| keyValueSeparator.equals("")
@@ -88,14 +72,14 @@ public final class CommandHandler {
 
 	public static String[] handleArguments(String...args) {
 		final ArrayList<String> ignoredArgs = new ArrayList<>();
-		final ArrayList<Command> commands = new ArrayList<>();
-		commands.addAll(CommandHandler.commands);
+		final ArrayList<Flag> commands = new ArrayList<>();
+		commands.addAll(CommandHandler.flags);
 		for (int i = 0;i < args.length; i++) {
 			String arg = args[i];
 			if (arg.startsWith(CommandHandler.flagIndicator)) {
 				arg = arg.substring(CommandHandler.flagIndicator.length());
 				boolean exists = false;
-				for (final Command command : commands) {
+				for (final Flag command : commands) {
 					if (command.getName().equals(
 							CommandHandler.keyValueSeparator.equals(" ")
 								? arg
@@ -139,14 +123,14 @@ public final class CommandHandler {
 
 	public static List<String> handleArguments(List<String> args) {
 		final ArrayList<String> ignoredArgs = new ArrayList<>();
-		final ArrayList<Command> commands = new ArrayList<>();
-		commands.addAll(CommandHandler.commands);
+		final ArrayList<Flag> commands = new ArrayList<>();
+		commands.addAll(CommandHandler.flags);
 		for (int i = 0;i < args.size(); i++) {
 			String arg = args.get(i);
 			if (arg.startsWith(CommandHandler.flagIndicator)) {
 				arg = arg.substring(CommandHandler.flagIndicator.length());
 				boolean exists = false;
-				for (final Command command : commands) {
+				for (final Flag command : commands) {
 					if (command.getName().equals(
 							CommandHandler.keyValueSeparator.equals(" ")
 								? arg
@@ -190,12 +174,12 @@ public final class CommandHandler {
 	public static String[] handleArguments(
 			final String flagIndicator,
 			final String keyValueSeparator,
-			final Command[] commands,
+			final Flag[] flags,
 			final String...args) {
 		return CommandHandler.cacheValues(() -> {
 			CommandHandler.setFlagIndicator(flagIndicator);
 			CommandHandler.setKeyValueSeparator(keyValueSeparator);
-			CommandHandler.setCommands(commands);
+			CommandHandler.setFlags(flags);
 			return CommandHandler.handleArguments(args);
 		});
 	}
@@ -203,12 +187,12 @@ public final class CommandHandler {
 	public static String[] handleArguments(
 			final String flagIndicator,
 			final String keyValueSeparator,
-			final List<Command> commands,
+			final List<Flag> flags,
 			final String...args) {
 		return CommandHandler.cacheValues(() -> {
 			CommandHandler.setFlagIndicator(flagIndicator);
 			CommandHandler.setKeyValueSeparator(keyValueSeparator);
-			CommandHandler.setCommands(commands);
+			CommandHandler.setFlags(flags);
 			return CommandHandler.handleArguments(args);
 		});
 	}
@@ -216,12 +200,12 @@ public final class CommandHandler {
 	public static List<String> handleArguments(
 			final String flagIndicator,
 			final String keyValueSeparator,
-			final List<Command> commands,
+			final List<Flag> flags,
 			final List<String> args) {
 		return CommandHandler.cacheValues(() -> {
 			CommandHandler.setFlagIndicator(flagIndicator);
 			CommandHandler.setKeyValueSeparator(keyValueSeparator);
-			CommandHandler.setCommands(commands);
+			CommandHandler.setFlags(flags);
 			return CommandHandler.handleArguments(args);
 		});
 	}
@@ -229,65 +213,77 @@ public final class CommandHandler {
 	public static List<String> handleArguments(
 			final String flagIndicator,
 			final String keyValueSeparator,
-			final Command[] commands,
+			final Flag[] flags,
 			final List<String> args) {
 		return CommandHandler.cacheValues(() -> {
 			CommandHandler.setFlagIndicator(flagIndicator);
 			CommandHandler.setKeyValueSeparator(keyValueSeparator);
-			CommandHandler.setCommands(commands);
+			CommandHandler.setFlags(flags);
 			return CommandHandler.handleArguments(args);
 		});
 	}
 
 	public static String[] parseArgs(final String...args) {
-		int prevValue = NO_PREV_VALUE;
 		String[] newArgs = Arrays.copyOf(args, args.length);
-		for (int i = args.length - 1;i >= 0;i--) {
-			if (args[i].startsWith(CommandHandler.parsIndicator)) {
-				if (prevValue == NO_PREV_VALUE
-						&& !args[i].startsWith(CommandHandler.flagIndicator)) {
-					throw new IllegalArgumentException("Invalid parser formatting");
-				}
-				final String name = args[i].substring(
-						CommandHandler.parsIndicator.length());
-				boolean exists = false;
-				for (Parser parser : CommandHandler.parser) {
-					if (parser.getName().equals(name)) {
-						exists = true;
-						final String[] tmp = new String[prevValue - i];
-						for (int j = i - 1;j >= 0;j--) {
-							tmp[j] = newArgs[j];
+		for (int i = newArgs.length - 1; i >= 0; i--) {
+			for (Parser parser : CommandHandler.parser) {
+				if (parser.getName().equals(newArgs[i])) {
+					final ArrayList<String> toParse = new ArrayList<>();
+					int parsValues = 0;
+					for (int j = i + 1;j < newArgs.length;j++) {
+						if (newArgs[j].equals(parser.getSuffix())
+								|| (parser.getSuffix() == null
+									&& parsValues == parser.getValues())) {
+							break;
 						}
-						tmp[i] = parser.getAction().apply(
-								Arrays.copyOfRange(args, i, prevValue));
-						for (int j = i + 1;j < tmp.length;j++) {
-							tmp[j] = newArgs[j + prevValue - i - 1];
+						toParse.add(newArgs[j]);
+						boolean exists = false;
+						for (Flag flag : CommandHandler.flags) {
+							if (newArgs[j].startsWith(
+									CommandHandler.flagIndicator + flag.getName())) {
+								exists = true;
+								if (CommandHandler.keyValueSeparator.equals(" ")) {
+									int values = flag.getValues();
+									if (j + values >= newArgs.length) {
+										throw new IllegalArgumentException(
+												"Invalid formatting");
+									}
+									while(--values >= 0) {
+										toParse.add(newArgs[++j]);
+									}
+								}
+								break;
+							}
 						}
-						newArgs = tmp;
-						prevValue = NO_PREV_VALUE;
-						break;
+						if (!exists) {
+							parsValues++;
+						}
 					}
+					newArgs[i] = parser.getAction().apply(
+							toParse.toArray(new String[toParse.size()]));
+					final int offset = toParse.size()
+							+ (parser.getSuffix() == null ? 0 : 1);
+					for (int j = i + offset;j < newArgs.length; j++) {
+						newArgs[j - offset] = newArgs[j];
+					}
+					newArgs = Arrays.copyOf(newArgs, newArgs.length - offset);
+					break;
 				}
-				if (!exists && !CommandHandler.flagIndicator.startsWith(CommandHandler.parsIndicator)) {
-					throw new IllegalArgumentException("Invalid parser \"" + name + "\"");
-				}
-			} else if (!args[i].startsWith(CommandHandler.flagIndicator)
-					&& prevValue == NO_PREV_VALUE) {
-				prevValue = i;
 			}
 		}
-		Arrays.stream(newArgs).forEach(e -> System.out.println("newArgs: " + e));
 		return newArgs;
 	}
 
 	private static <T> T cacheValues(Supplier<T> action) {
 		final String prevFlagIndicator = CommandHandler.flagIndicator;
 		final String prevKeyValueSeparator = CommandHandler.keyValueSeparator;
-		final List<Command> prevCommands = CommandHandler.commands;
+		final List<Flag> prevCommands = CommandHandler.flags;
+		final List<Parser> prevParser = CommandHandler.parser;
 		final T returnObject = action.get();
 		CommandHandler.setFlagIndicator(prevFlagIndicator);
 		CommandHandler.setKeyValueSeparator(prevKeyValueSeparator);
-		CommandHandler.setCommands(prevCommands);
+		CommandHandler.setFlags(prevCommands);
+		CommandHandler.setParser(prevParser);
 		return returnObject;
 	}
 }

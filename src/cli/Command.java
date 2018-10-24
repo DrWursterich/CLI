@@ -1,26 +1,10 @@
 package cli;
 
-import java.util.function.Consumer;
+public abstract class Command {
+	protected String name;
+	protected int values;
 
-public class Command {
-	private String name;
-	private Consumer<String[]> action;
-	private int values;
-	private boolean allowMultiple;
-
-	public Command(
-			final String name,
-			final Consumer<String[]> action,
-			final int values,
-			final boolean allowMultiple) {
-		this.setName(name);
-		this.setAction(action);
-		this.setValues(values);
-		this.setAllowMultiple(allowMultiple);
-	}
-
-	public Command(final String name, final Consumer<String[]> action) {
-		this(name, action, 1, false);
+	public Command() {
 	}
 
 	public void setName(final String name) {
@@ -34,31 +18,15 @@ public class Command {
 		return this.name;
 	}
 
-	public void setAction(final Consumer<String[]> action) {
-		if (action == null) {
-			throw new IllegalArgumentException("Invalid action");
-		}
-		this.action = action;
-	}
-
-	public Consumer<String[]> getAction() {
-		return this.action;
-	}
-
 	public void setValues(final int values) {
+		if (values < 0) {
+			throw new IllegalArgumentException("Invalid amount of values \"" + values + "\"");
+		}
 		this.values = values;
 	}
 
 	public int getValues() {
 		return this.values;
-	}
-
-	public void setAllowMultiple(final boolean allowMultiple) {
-		this.allowMultiple = allowMultiple;
-	}
-
-	public boolean allowMultiple() {
-		return this.allowMultiple;
 	}
 
 	@Override
@@ -68,27 +36,16 @@ public class Command {
 
 	@Override
 	public int hashCode() {
-		return this.name.hashCode()
-				+ this.action.hashCode()
-				+ this.values
-				+ (this.allowMultiple ? 1 : 0);
+		return this.name.hashCode() + this.values;
 	}
 
 	@Override
 	public boolean equals(Object other) {
-		if (other == null || !(other instanceof Command)) {
+		if (other == null || !(other instanceof Flag)) {
 			return false;
 		}
 		Command command = (Command)other;
 		return command.name == this.name
-				&& command.action.equals(this.action)
-				&& command.values == this.values
-				&& command.allowMultiple == this.allowMultiple;
-	}
-
-	@Override
-	protected Object clone() {
-		return new Command(
-				this.name, this.action, this.values, this.allowMultiple);
+				&& command.values == this.values;
 	}
 }
