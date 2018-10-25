@@ -100,7 +100,10 @@ public final class CommandHandler {
 							} else {
 								arg = arg.substring(arg.indexOf(
 									CommandHandler.keyValueSeparator) + 1);
-								values[j] = arg;
+								final int index = arg.indexOf(CommandHandler.keyValueSeparator);
+								values[j] = arg.substring(0, index != -1
+										? index
+										: arg.length());
 							}
 						}
 						if (!command.allowMultiple()) {
@@ -149,8 +152,12 @@ public final class CommandHandler {
 											"Missing parameter for " + arg);
 								}
 							} else {
-								values[j] = arg = arg.substring(arg.indexOf(
-											CommandHandler.keyValueSeparator) + 1);
+								arg = arg.substring(arg.indexOf(
+										CommandHandler.keyValueSeparator) + 1);
+								final int index = arg.indexOf(CommandHandler.keyValueSeparator);
+								values[j] = arg.substring(0, index != -1
+										? index
+										: arg.length());
 							}
 						}
 						if (!command.allowMultiple()) {
@@ -263,7 +270,7 @@ public final class CommandHandler {
 							toParse.toArray(new String[toParse.size()]));
 					final int offset = toParse.size()
 							+ (parser.getSuffix() == null ? 0 : 1);
-					for (int j = i + offset;j < newArgs.length; j++) {
+					for (int j = i + offset + 1;j < newArgs.length; j++) {
 						newArgs[j - offset] = newArgs[j];
 					}
 					newArgs = Arrays.copyOf(newArgs, newArgs.length - offset);
