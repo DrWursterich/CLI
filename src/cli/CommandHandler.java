@@ -97,7 +97,6 @@ public class CommandHandler {
 					if (separator.equals(" ")) {
 						if (args.length > ++i) {
 							values[j] = args[i];
-							break;
 						} else {
 							throw new IllegalArgumentException(
 									flag.getName() + " expects " + flag.getValues() + " parameters");
