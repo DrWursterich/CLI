@@ -109,7 +109,7 @@ public class Flag extends Command {
 			final String name,
 			final Consumer<String[]> action,
 			final String valueSeparator) {
-		this(name, action, valueSeparator, Flag.defaultValues);
+		this(name, action, valueSeparator, Command.defaultValues);
 	}
 
 	/**
@@ -196,12 +196,12 @@ public class Flag extends Command {
 	 * @return whether the given String fits this Flag
 	 */
 	public boolean isThis(final String str) {
-		return name.equals(!this.valueSeparator.equals(" ") && this.values != 0
-				? str.substring(
-					0,
-					name.length() + str.substring(name.length()).indexOf(
-						this.valueSeparator))
-				: str);
+		final int nameLength = this.name.length();
+		return this.valueSeparator.equals(" ") || this.values == 0
+				? this.name.equals(str)
+				: str.substring(nameLength).startsWith(this.valueSeparator)
+					&& str.length() > nameLength
+					&& this.name.equals(str.substring(0, nameLength));
 	}
 
 	/**
