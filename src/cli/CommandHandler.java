@@ -100,9 +100,13 @@ public class CommandHandler {
 							break;
 						} else {
 							throw new IllegalArgumentException(
-									"Missing parameter for " + arg);
+									flag.getName() + " expects " + flag.getValues() + " parameters");
 						}
 					} else {
+						if (!arg.contains(separator)) {
+							throw new IllegalArgumentException(
+									flag.getName() + " expects " + flag.getValues() + " parameters");
+						}
 						arg = arg.substring(1 + (j == 0
 								? flag.getName().length()
 								: arg.indexOf(separator)));
